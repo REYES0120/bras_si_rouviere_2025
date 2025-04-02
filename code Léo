@@ -1,0 +1,44 @@
+#include <Servo.h>
+#include <Wire.h>
+#include "rgb_lcd.h"
+
+Servo servo1, servo2, servo3, servo4;
+rgb_lcd lcd;
+
+const int pinServo1 = 5;
+const int pinServo2 = 6;
+const int pinServo3 = 7;
+const int pinServo4 = 8;
+const int potPin = A0;  
+const int lcdPin = SDA; 
+int angle1 = 90, angle2 = 90, angle3 = 90, angle4 = 90; 
+
+void setup() {
+ servo1.attach(pinServo1);
+ servo2.attach(pinServo2);
+ servo3.attach(pinServo3);
+ servo4.attach(pinServo4);
+    
+    Wire.begin();
+    lcd.begin(16, 2);
+    lcd.setRGB(0, 255, 0); 
+
+    pinMode(potPin, INPUT);
+}
+
+void loop() {
+    int potValue = analogRead(potPin); 
+    angle1 = map(potValue, 0, 1023, 0, 180); 
+
+    servo1.write(angle1);
+    
+    lcd.setCursor(0, 0);
+    lcd.print("S1");
+    lcd.print(angle1);
+    lcd.print("S2");
+    lcd.print(angle2);
+    lcd.print("S3");
+    lcd.print(angle3);
+  
+    delay(100); 
+}
