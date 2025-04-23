@@ -1,44 +1,47 @@
-#include <Servo.h>
-#include <Wire.h>
-#include "rgb_lcd.h"
-
-Servo servo1, servo2, servo3, servo4;
+int Tourelle;
+int Hauteur;
+int Extension;
+int TourelleM;
+int HauteurM;
+int ExtensionM;
 rgb_lcd lcd;
-
-const int pinServo1 = 5;
-const int pinServo2 = 6;
-const int pinServo3 = 7;
-const int pinServo4 = 8;
-const int potPin = A0;  
-const int lcdPin = SDA; 
-int angle1 = 90, angle2 = 90, angle3 = 90, angle4 = 90; 
+int boutonpoussoir;
 
 void setup() {
- servo1.attach(pinServo1);
- servo2.attach(pinServo2);
- servo3.attach(pinServo3);
- servo4.attach(pinServo4);
-    
-    Wire.begin();
-    lcd.begin(16, 2);
-    lcd.setRGB(0, 255, 0); 
-
-    pinMode(potPin, INPUT);
+  lcd.begin(16,2);
+  lcd.begin();
+  lcd.backlight();
 }
 
 void loop() {
-    int potValue = analogRead(potPin); 
-    angle1 = map(potValue, 0, 1023, 0, 180); 
-
-    servo1.write(angle1);
-    
+ lcd.clear
+ if (boutonpoussoir == 1){
+  Tourelle = TourelleM;
+  Hauteur = HauteurM;
+  Extension = ExtensionM;
+ }
+ // Afficher les angles sur la première ligne
     lcd.setCursor(0, 0);
-    lcd.print("S1");
-    lcd.print(angle1);
-    lcd.print("S2");
-    lcd.print(angle2);
-    lcd.print("S3");
-    lcd.print(angle3);
-  
-    delay(100); 
-}
+    lcd.print("x:");
+    lcd.print(servo1Angle);
+    
+    lcd.print("y:");
+    lcd.print(servo2Angle);
+    
+    lcd.print("z:");
+    lcd.print(servo3Angle);
+    lcd.clear();
+  lcd.setCursor(0,1);
+  Serial.print("M");
+  lcd.setCursor(2,1);
+  Serial.print("E");
+  lcd.setCursor(3,1);
+  Serial.print(ExtensionM);
+  lcd.setCursor(7,1);
+  Serial.print("H");
+  lcd.setCursor(8,1);
+  Serial.print(HauteurM);
+  lcd.setCursor(12,1);
+  Serial.print("T");
+  lcd.setCursor(13,1);
+  Serial.print(TourelleM);
