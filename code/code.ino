@@ -25,7 +25,8 @@ const int servoBasePin = 3;
 const int servoPincePin = 5;
 const int servoBras1Pin = 6;
 const int servoBras2Pin = 9;
-
+const int boutonMemPin = 7;
+const int boutonRestaurerPin = 8;
 
 // ************************************************
 // Fenêtre XY dans laquelle le bras peut évoluer
@@ -80,6 +81,12 @@ bool s_cligno = false;
 double nextCligno = 0;
 const double CLIGNO_DELAY = 200000; // in micro sec. 
 
+// Variables pour la mémorisation/restauration de position
+bool etatMemPrecedent = LOW;
+bool etatRestaurerPrecedent = LOW;
+float memX = 0;
+float memY = 0;
+int memZ = 0; // Z = base
 
 //************************************************************
 // Cette fonction calcule alpha et beta en fonction de x et y
@@ -121,28 +128,32 @@ void setup() {
 
 // Fonction pour enregistrer une position et pouvoir y revenir à tout moment //
 
-void gererBoutonMemoire(float x, float y, int z) {
-    bool boutonEtat = digitalRead(boutonPin);
-    if (boutonEtat == HIGH && boutonEtatPrecedent == LOW) {
-        if (memorisationActive) {
-            memX = x;
-            memY = y;
-            memZ = z;
-            Serial.println("Position (x, y, z) enregistrée.");
-        } else {
-            float alpha = 0, beta = 0;
-            computeAlphaBeta(memX, memY, alpha, beta);
-            int posBras1 = constrain(alpha, 1, ANGLE_SERVO_MAX - 1);
-            int posBras2 = constrain(beta, 1, ANGLE_SERVO_MAX - 1);
-            servoBase.write(memZ);
-            servoBras1.write(posBras1);
-            servoBras2.write(posBras2);
-            Serial.println("Position (x, y, z) restaurée.");
-        }
-        memorisationActive = !memorisationActive;
+void gererBoutonsMemoire(float x, float y, int z) {
+    bool etatMem = digitalRead(boutonMemPin);
+    bool etatRestaurer = digitalRead(boutonRestaurerPin);
+
+    if (etatMem == HIGH && etatMemPrecedent == LOW) {
+        memX = x;
+        memY = y;
+        memZ = z;
+        Serial.println("Position (x, y, z) enregistrée.");
     }
-    boutonEtatPrecedent = boutonEtat;
+
+    if (etatRestaurer == HIGH && etatRestaurerPrecedent == LOW) {
+        float alpha = 0, beta = 0;
+        computeAlphaBeta(memX, memY, alpha, beta);
+        int posBras1 = constrain(alpha, 1, ANGLE_SERVO_MAX - 1);
+        int posBras2 = constrain(beta, 1, ANGLE_SERVO_MAX - 1);
+        servoBase.write(memZ);
+        servoBras1.write(posBras1);
+        servoBras2.write(posBras2);
+        Serial.println("Position (x, y, z) restaurée.");
+    }
+
+    etatMemPrecedent = etatMem;
+    etatRestaurerPrecedent = etatRestaurer;
 }
+
 /*
   Fonction de mise à jour des positions des servo moteurs en fonction : 
    - des valeurs de alpha et beta retournés par computeAlphaBeta(x, y)
