@@ -25,8 +25,8 @@ const int servoBasePin = 3;
 const int servoPincePin = 5;
 const int servoBras1Pin = 6;
 const int servoBras2Pin = 9;
-const int boutonMemPin = 7;
-const int boutonRestaurerPin = 8;
+const int boutonMemPin = 8;
+const int boutonRestaurerPin = 7;
 
 // ************************************************
 // Fenêtre XY dans laquelle le bras peut évoluer
@@ -82,11 +82,11 @@ double nextCligno = 0;
 const double CLIGNO_DELAY = 200000; // in micro sec. 
 
 // Variables pour la mémorisation/restauration de position
-bool etatMemPrecedent = LOW;
 bool etatRestaurerPrecedent = LOW;
 float memX = 0;
 float memY = 0;
 int memZ = 0; // Z = base
+bool hasMemorized = false;
 
 //************************************************************
 // Cette fonction calcule alpha et beta en fonction de x et y
@@ -116,6 +116,8 @@ void setup() {
     servoPince.attach(servoPincePin);
     servoBras1.attach(servoBras1Pin);
     servoBras2.attach(servoBras2Pin);
+    pinMode(boutonMemPin , INPUT_PULLUP);
+    pinMode(boutonRestaurerPin , INPUT_PULLUP);
     Serial.begin(9600);
     nextCligno = micros() + CLIGNO_DELAY;
     lastX = LAST_XY_INIT_VALUE;
@@ -128,10 +130,10 @@ void setup() {
 
 // Fonction pour enregistrer une position et pouvoir y revenir à tout moment //
 
-void gererBoutonsMemoire(float x, float y, int z) {
-    bool etatMem = digitalRead(boutonMemPin);
-    bool etatRestaurer = digitalRead(boutonRestaurerPin);
-
+void lireBoutonsMemoire(bool &etatMem, bool &etatRestaurer) {
+    etatMem = digitalRead(boutonMemPin);
+    etatRestaurer = digitalRead(boutonRestaurerPin);
+/*
     if (etatMem == HIGH && etatMemPrecedent == LOW) {
         memX = x;
         memY = y;
@@ -142,8 +144,6 @@ void gererBoutonsMemoire(float x, float y, int z) {
     if (etatRestaurer == HIGH && etatRestaurerPrecedent == LOW) {
         float alpha = 0, beta = 0;
         computeAlphaBeta(memX, memY, alpha, beta);
-        int posBras1 = constrain(alpha, 1, ANGLE_SERVO_MAX - 1);
-        int posBras2 = constrain(beta, 1, ANGLE_SERVO_MAX - 1);
         servoBase.write(memZ);
         servoBras1.write(posBras1);
         servoBras2.write(posBras2);
@@ -152,6 +152,7 @@ void gererBoutonsMemoire(float x, float y, int z) {
 
     etatMemPrecedent = etatMem;
     etatRestaurerPrecedent = etatRestaurer;
+*/
 }
 
 /*
@@ -263,7 +264,7 @@ void computeBaseEtPince(int potBaseVal, int potPinceVal, int &potBasePos, int &p
   Fonction d'écriture des consignes vers les servomoteurs base, pince, bras1 et bras2.
   Les consignes sont des entiers, exprimés en degrés.
 */
-void writeServo( int servoBras1Pos, int servoBras2Pos, int potBasePos, int potPincePos){
+void writeServo(int potBasePos, int potPincePos,int servoBras1Pos, int servoBras2Pos){
     servoBase.write(potBasePos);
     servoPince.write(potPincePos);
     servoBras1.write(servoBras1Pos);
@@ -288,6 +289,9 @@ void loop() {
     float bras_x = 0, bras_y = 0;
     bool out_of_bounds = false;
     bool positionChanged = false;
+    bool etatMem = false, etatRestaurer = false;
+
+    lireBoutonsMemoire(etatMem, etatRestaurer);
 
     // Lecture des potentiomètres
     readPotentiometer(potBaseVal, potPinceVal, potXVal, potYVal);
@@ -295,27 +299,60 @@ void loop() {
     float x = 0, y = 0;     
     computeXYfromPot(potXVal, potYVal, x, y, out_of_bounds, positionChanged);
 
+
     // Base et Pince
     computeBaseEtPince(potBaseVal, potPinceVal, potBasePos, potPincePos);
 
     // Calcul des positions servoBras1Pos et servoBras2Pos
     computeCombinedAlphaBeta(x,y, out_of_bounds, positionChanged, servoBras1Pos, servoBras2Pos, bras_x, bras_y);
 
+    // Calcul de l'etat du bras
+    if (etatMem == LOW){
+    /*  memX = servoBras1Pos;
+      memY = servoBras2Pos;
+      memZ = potBasePos;
+      Serial.print("Position (");
+      Serial.print(memX);
+      Serial.print(" , ");
+      Serial.print(memY);
+      Serial.print(" , ");
+      Serial.print(memZ);
+      Serial.println(" ) enregistrée.");
+      hasMemorized = true;
+      */
+      servoBras2.write(0);
+    }
+
+    if (etatRestaurer == LOW && etatRestaurerPrecedent == HIGH && hasMemorized) {
+        writeServo(memZ, potPincePos, memX, memY);
+        Serial.print("Position (");
+        Serial.print(memX);
+        Serial.print(" , ");
+        Serial.print(memY);
+        Serial.print(" , ");
+        Serial.print(memZ);
+        Serial.println(" ) restaurée.");
+        etatRestaurerPrecedent = LOW;
+    } else {
+              Serial.println(positionChanged);
+    etatRestaurerPrecedent = HIGH;
     // Affichage des positions de la base, de la pince et du bras
     // fonction par défaut utilisant Serial.print()
     if (positionChanged || out_of_bounds) displayPosition(potBasePos, potPincePos, servoBras1Pos, servoBras2Pos, bras_x, bras_y, out_of_bounds, s_cligno);
     //displayPosition(potBasePos, potPincePos, servoBras1Pos, servoBras2Pos, bras_x, bras_y, out_of_bounds, s_cligno);
 
     // Ecriture vers les servos si les valeurs calculées sont dans les valeurs autorisées
-    if (!out_of_bounds) writeServo(potBasePos, potPincePos, servoBras1Pos, servoBras2Pos);
+    if (positionChanged && !out_of_bounds) writeServo(potBasePos, potPincePos, servoBras1Pos, servoBras2Pos);
+
+    }
 
     // mise à jour clignotement (variable globale s_cligno)
     cligno();
-    delay(50);
+    delay(200);
 }
 
 /*
-  Fonction d'affichage par défaut, utilisantla fonction Seria.print().
+  Fonction d'affichage par défaut, utilisant la fonction Serial.print().
 */
 void displayPosition(int baseVal, int pinceVal, int bras1Val, int bras2Val, float xBras, float yBras, bool out_of_bounds, bool clign){
 
