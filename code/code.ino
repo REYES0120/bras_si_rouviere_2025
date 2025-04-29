@@ -308,7 +308,7 @@ void loop() {
 
     // Calcul de l'etat du bras
     if (etatMem == LOW){
-    /*  memX = servoBras1Pos;
+      memX = servoBras1Pos;
       memY = servoBras2Pos;
       memZ = potBasePos;
       Serial.print("Position (");
@@ -319,8 +319,6 @@ void loop() {
       Serial.print(memZ);
       Serial.println(" ) enregistrée.");
       hasMemorized = true;
-      */
-      servoBras2.write(0);
     }
 
     if (etatRestaurer == LOW && etatRestaurerPrecedent == HIGH && hasMemorized) {
