@@ -286,10 +286,16 @@ void afficherXYZ(float x, float y, int z) {
 }
 
 void afficherMemXYZ(int memX, int memY, int memZ) {
-
-    printValeur(memX, 0, 1, "E:");
-    printValeur(memY, 5, 1, "H:"); 
-    printValeur(memZ, 10, 1, "T:"); 
+    lcd.setCursor(0, 1);
+    lcd.print("M E");
+    lcd.setCursor(3, 1);
+    lcd.print(memX);
+    lcd.setCursor(7, 1);
+    lcd.print("H");
+    lcd.print(memY);
+    lcd.setCursor(12, 1);
+    lcd.print("T");
+    lcd.print(memZ);
 }
 
 void loop() {
